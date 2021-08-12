@@ -1,11 +1,12 @@
-import React, { FunctionComponent } from 'react';
+import React, { ChangeEvent, FunctionComponent, useState } from 'react';
+import { Link, RouteComponentProps, withRouter } from 'react-router-dom';
+
 import Avatar from '@material-ui/core/Avatar';
 import Button from '@material-ui/core/Button';
 import CssBaseline from '@material-ui/core/CssBaseline';
 import TextField from '@material-ui/core/TextField';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Checkbox from '@material-ui/core/Checkbox';
-import Link from '@material-ui/core/Link';
 import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
 import LockOutlinedIcon from '@material-ui/icons/LockOutlined';
@@ -13,17 +14,13 @@ import Typography from '@material-ui/core/Typography';
 import { makeStyles } from '@material-ui/core/styles';
 import Container from '@material-ui/core/Container';
 
-const Copyright: FunctionComponent = () => {
-	return (
-		<Typography variant="body2" color="textSecondary" align="center">
-			{'Copyright © '}
-			<Link color="inherit" href="https://material-ui.com/">
-				Your Website
-			</Link>{' '}
-			{new Date().getFullYear()}
-			{'.'}
-		</Typography>
-	);
+import Firebase from '../components/Firebase/firebase';
+import { withFirebase } from '../components/Firebase/index';
+import { InitialUser } from '../types/user-types';
+import ForgotPassword from '../components/ForgotPassword/index';
+
+interface FirebaseComp {
+	firebase: Firebase;
 }
 
 const useStyles = makeStyles((theme) => ({
@@ -46,8 +43,43 @@ const useStyles = makeStyles((theme) => ({
 	},
 }));
 
-const SignIn: FunctionComponent = () => {
+const Copyright: FunctionComponent = () => {
+	return (
+		<Typography variant="body2" color="textSecondary" align="center">
+			{'Copyright © '}
+			<Link color="inherit" to="https://material-ui.com/">
+				Your Website
+			</Link>{' '}
+			{new Date().getFullYear()}
+			{'.'}
+		</Typography>
+	);
+}
+
+const SignIn: FunctionComponent<RouteComponentProps & FirebaseComp> = (props: RouteComponentProps & FirebaseComp) => {
 	const classes = useStyles();
+
+	const initialUser: InitialUser = {id: null, email: '', password: '', name: '', error: null, auth: null};
+
+	const [user, setUser] = useState(initialUser);
+
+	const handleChange = (e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement | HTMLButtonElement>): void => {
+		const { name, value } = e.target;
+		setUser({ ...user, [name]: value });
+	}
+
+	const handleSubmit = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+		props.firebase.doSignInWithEmailAndPassword(user.email, user.password)
+			.then(authUser => {
+				setUser(initialUser);
+				props.history.push('/dashboard');
+			})
+			.catch(err => {
+				setUser({ ...user, error: err.message });
+			})
+	}
+
+	const isValid = user.email === '' || user.password === '';
 
 	return (
 		<Container component="main" maxWidth="xs">
@@ -56,10 +88,10 @@ const SignIn: FunctionComponent = () => {
 				<Avatar className={classes.avatar}>
 					<LockOutlinedIcon />
 				</Avatar>
-				<Typography component="h1" variant="h5">
+				<Typography component="h1">
 					Sign in
 				</Typography>
-				<form className={classes.form} noValidate>
+				<form className={classes.form} noValidate onSubmit={e => e.preventDefault()}>
 					<TextField
 						variant="outlined"
 						margin="normal"
@@ -70,6 +102,7 @@ const SignIn: FunctionComponent = () => {
 						name="email"
 						autoComplete="email"
 						autoFocus
+						onChange={handleChange}
 					/>
 					<TextField
 						variant="outlined"
@@ -81,29 +114,30 @@ const SignIn: FunctionComponent = () => {
 						type="password"
 						id="password"
 						autoComplete="current-password"
+						onChange={handleChange}
 					/>
-					<FormControlLabel
+					{/* <FormControlLabel
 						control={<Checkbox value="remember" color="primary" />}
 						label="Remember me"
-					/>
+					/> */}
 					<Button
 						type="submit"
 						fullWidth
 						variant="contained"
 						color="primary"
 						className={classes.submit}
+						onClick={handleSubmit}
+						disabled={isValid}
 					>
 						Sign In
 					</Button>
 					<Grid container>
 						<Grid item xs>
-							<Link href="#" variant="body2">
-								Forgot password?
-							</Link>
+							<ForgotPassword />
 						</Grid>
 						<Grid item>
-							<Link href="#" variant="body2">
-								{"Don't have an account? Sign Up"}
+							<Link to="/sign-up">
+								Don't have an account? Sign Up
 							</Link>
 						</Grid>
 					</Grid>
@@ -116,4 +150,4 @@ const SignIn: FunctionComponent = () => {
 	);
 }
 
-export default SignIn;
+export default withRouter(withFirebase(SignIn));

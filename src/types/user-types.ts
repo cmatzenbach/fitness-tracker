@@ -1,7 +1,8 @@
 export type InitialUser = {
-		id: number,
+		id: number | null,
 		email: string,
 		password: string,
-		error: boolean,
-		auth: boolean
+		name: string,
+		error: any | null,
+		auth: boolean | null
 };
